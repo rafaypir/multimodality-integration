@@ -24,7 +24,7 @@ class FusionCrossAttention(nn.Module):
         
         # Layers of the neural network       
         if input_mod1 == input_mod2:
-            # Learnable parameters for the attention mechanism
+            
             self.W_q = torch.nn.Linear(input_mod1, input_mod1)
             self.W_k = torch.nn.Linear(input_mod1, input_mod1)
             self.W_v = torch.nn.Linear(input_mod1, input_mod1)
@@ -33,7 +33,7 @@ class FusionCrossAttention(nn.Module):
             self.hidden_dim1 = hidden_dim1
             self.fc_mod1 = nn.Linear(input_mod1, hidden_dim1)
             self.fc_mod2 = nn.Linear(input_mod2, hidden_dim1)
-            # Learnable parameters for the attention mechanism
+            
             self.W_q = torch.nn.Linear(hidden_dim1, hidden_dim1)
             self.W_k = torch.nn.Linear(hidden_dim1, hidden_dim1)
             self.W_v = torch.nn.Linear(hidden_dim1, hidden_dim1)
@@ -52,7 +52,7 @@ class FusionCrossAttention(nn.Module):
         mod2_att_mod1 = []
         for idx, vector1 in enumerate(modality1):
             # Apply cross-attention between the two modalities (how modality 2 attends to modality 1)
-            # Calculate query, key, and value vectors for both input vectors
+            
             vector1 = vector1.float()
             vector2 = modality2[idx].float()       
             Q1 = self.W_q(vector1).unsqueeze(0)
@@ -61,12 +61,12 @@ class FusionCrossAttention(nn.Module):
             # Calculate attention scores
             scores = torch.matmul(Q1, K2.T) / torch.sqrt(torch.tensor(K2.shape[1], dtype=torch.float32))
             attention_weights = F.softmax(scores, dim=-1)
-            # Weighted sum of vector2 based on the attention scores
+            
             weighted_sum = torch.matmul(attention_weights, V2)
             mod1_att_mod2.append(weighted_sum)
             
             # Apply cross-attention between the two modalities (how modality 1 attends to modality 2)
-            # Calculate query, key, and value vectors for both input vectors
+            
             Q1 = self.W_q(vector2).unsqueeze(0)
             K2 = self.W_k(vector1).unsqueeze(0)
             V2 = self.W_v(vector1).unsqueeze(0)
@@ -100,11 +100,11 @@ class FusionMultiHeadCrossAttention(nn.Module):
         if input_mod1 == input_mod2:
             assert input_mod1 % num_heads == 0, "embed_dim must be divisible by num_heads"
             self.head_dim = input_mod1 // num_heads
-            # Learnable parameters for the attention mechanism
+            
             self.W_q = torch.nn.Linear(input_mod1, input_mod1)
             self.W_k = torch.nn.Linear(input_mod1, input_mod1)
             self.W_v = torch.nn.Linear(input_mod1, input_mod1)
-            # Linear transformation for the output of multi-head attention
+            
             self.W_o = nn.Linear(input_mod1, input_mod1)
             self.fc1 = nn.Linear(2*input_mod1, hidden_dim2) 
         else:
@@ -113,11 +113,11 @@ class FusionMultiHeadCrossAttention(nn.Module):
             self.fc_mod1 = nn.Linear(input_mod1, hidden_dim1)
             self.fc_mod2 = nn.Linear(input_mod2, hidden_dim1)
             self.head_dim = hidden_dim1 // num_heads
-            # Learnable parameters for the attention mechanism
+            
             self.W_q = torch.nn.Linear(hidden_dim1, hidden_dim1)
             self.W_k = torch.nn.Linear(hidden_dim1, hidden_dim1)
             self.W_v = torch.nn.Linear(hidden_dim1, hidden_dim1)
-            # Linear transformation for the output of multi-head attention
+            
             self.W_o = nn.Linear(hidden_dim1, hidden_dim1)
             self.fc1 = nn.Linear(2*hidden_dim1, hidden_dim2)
         self.fc2 = nn.Linear(hidden_dim2, output_dim)
@@ -129,15 +129,14 @@ class FusionMultiHeadCrossAttention(nn.Module):
         return x
 
     def forward(self, modality1, modality2, mask=None):   
-        # Apply fully connected layers to get modality embeddings of equal dimension
+        
         if modality1.shape != modality2.shape:
             modality1 = self.fc_mod1(modality1)
             modality2 = self.fc_mod2(modality2)
         mod1_att_mod2 = []
         mod2_att_mod1 = []
         for idx, vector1 in enumerate(modality1):
-            # Apply cross-attention between the two modalities (how modality 2 attends to modality 1)
-            # Calculate query, key, and value vectors for both input vectors
+                        
             vector1 = vector1.float()
             vector2 = modality2[idx].float()       
             Q1 = self.W_q(vector1).unsqueeze(0)
@@ -147,23 +146,23 @@ class FusionMultiHeadCrossAttention(nn.Module):
             Q1 = self.split_heads(Q1)
             K2 = self.split_heads(K2)
             V2 = self.split_heads(V2)           
-            # Calculate scaled dot-product attention scores
+            
             scores = torch.matmul(Q1, K2.T) / (self.head_dim ** 0.5)
-            # Apply mask (if provided)
+            
             if mask is not None:
                 scores = scores.masked_fill(mask == 0, float("-inf"))
             
             # Apply softmax to obtain attention weights
             attention_weights = F.softmax(scores, dim=-1)
-            # Weighted sum of vector2 based on the attention scores
+            
             weighted_sum = torch.matmul(attention_weights, V2)
-            # Reshape and concatenate heads
+            
             weighted_sum = weighted_sum.contiguous().view(-1, modality1.shape[1])
-            # Apply final linear transformation to obtain the output of multi-head attention
+            
             mod1_att_mod2.append(self.W_o(weighted_sum))
             
-            # Apply cross-attention between the two modalities (how modality 1 attends to modality 2)
-            # Calculate query, key, and value vectors for both input vectors
+            
+            
             Q1 = self.W_q(vector2).unsqueeze(0)
             K2 = self.W_k(vector1).unsqueeze(0)
             V2 = self.W_v(vector1).unsqueeze(0) 
@@ -171,15 +170,15 @@ class FusionMultiHeadCrossAttention(nn.Module):
             Q1 = self.split_heads(Q1)
             K2 = self.split_heads(K2)
             V2 = self.split_heads(V2)
-            # Calculate scaled dot-product attention scores
+            
             scores = torch.matmul(Q1, K2.T) / (self.head_dim ** 0.5) 
             # Apply softmax to obtain attention weights
             attention_weights = F.softmax(scores, dim=-1)
-            # Weighted sum of vector1 based on the attention scores
+            
             weighted_sum = torch.matmul(attention_weights, V2)
-            # Reshape and concatenate heads
+            
             weighted_sum = weighted_sum.contiguous().view(-1, modality1.shape[1])
-            # Apply final linear transformation to obtain the output of multi-head attention
+           
             mod2_att_mod1.append(self.W_o(weighted_sum))
         # Fuse two modalities
         mod1_att_mod2 = torch.cat(mod1_att_mod2, axis=0)
@@ -444,4 +443,5 @@ print('Average c-index (mRNA): %.3f (%.2f)' % (np.mean(c_index_mRNA), np.std(c_i
 print('Average c-index (WSI): %.3f (%.2f)' % (np.mean(c_index_WSI), np.std(c_index_WSI)))
 print('Average c-index (early fusion): %.3f (%.2f)' % (np.mean(c_index_ef), np.std(c_index_ef)))
 print('Average c-index (single-head cross-attention): %.3f (%.2f)' % (np.mean(c_index_ca), np.std(c_index_ca)))
+
 print('Average c-index (multi-head cross-attention): %.3f (%.2f)' % (np.mean(c_index_mhca), np.std(c_index_mhca)))
