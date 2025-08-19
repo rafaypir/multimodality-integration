@@ -41,7 +41,7 @@ The end-to-end workflow for this project can be summarized in the following step
 2.  **Extract WSI Features**: Run either `CONCH_featureExtraction.py` or `UNI_featureExtraction.py` on the patches to generate histopathology feature embeddings.
 3.  **Prepare Transcriptomic Data**: Process the raw RNA-seq counts to generate one of the three feature types: normalized gene expression, ICA components, or wFDR pathway scores (using `wFDR_calculation.py`).
 4.  **Train the Model**: Select one of the main scripts (e.g., `gex_wWSI_CoAttention.py`) to train the cross-attention framework on a specific combination of prepared features.
-5.  **Evaluate and Interpret**: The script will output evaluation metrics (e.g., C-index, AUROC). Afterwards, run `attention_maps.py` on the saved model checkpoints to generate visualizations for biological validation.
+5.  **Evaluate and Interpret**: The script will output evaluation metrics (e.g., C-index, Bal. Accuracy). Afterwards, run `attention_maps.py` on the saved model checkpoints to generate visualizations for biological validation.
 
 ***
 
